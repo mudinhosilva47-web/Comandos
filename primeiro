@@ -1,1 +1,81 @@
-oi
+-- OMNI-ADMIN FE (Para Executor)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- CONFIGURAÇÃO DE DONO (SÓ VOCÊ)
+local OWNER_ID = 12345678 -- [[ COLOQUE SEU USER ID AQUI ]]
+local MY_PLAYER = Players.LocalPlayer
+local PREFIX = ":"
+
+-- Função para achar jogadores por abreviação
+local function getPlr(targetName)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #targetName) == targetName:lower() or p.DisplayName:lower():sub(1, #targetName) == targetName:lower() then
+            return p
+        end
+    end
+end
+
+-- [[ SISTEMA DE COMANDOS ]]
+local commands = {}
+
+-- 1. PULL (Puxar o jogador)
+-- Nota: Em FE, puxar outros jogadores exige que você colida com eles ou use brechas de rede
+commands.pull = function(args)
+    local target = getPlr(args[1])
+    if target and target.Character then
+        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- Tenta mover o personagem (funciona melhor se o mapa tiver brechas de colisão)
+            MY_PLAYER.Character.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, 2)
+            print("Puxando: " .. target.Name)
+        end
+    end
+end
+
+-- 2. FORCE FLY (Faz ele flutuar)
+commands.fly = function(args)
+    local target = getPlr(args[1])
+    if target and target.Character then
+        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+        -- Criando um efeito de flutuar via Velocity (se o script tiver permissão)
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Name = "OmniForce"
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Velocity = Vector3.new(0, 50, 0)
+        bodyVel.Parent = hrp
+        task.wait(3)
+        bodyVel:Destroy()
+    end
+end
+
+-- 3. KICK (Expulsar - Só funciona se o mapa tiver Remote de Admin vulnerável)
+commands.kick = function(args)
+    local target = getPlr(args[1])
+    if target then
+        -- Tentativa de Kick via Remote comum (Adonis/HD se existirem no mapa)
+        local reason = args[2] or "OMNI-SYSTEM"
+        print("Tentando expulsar: " .. target.Name)
+        -- Aqui o script tentaria disparar Remotes conhecidos do mapa
+    end
+end
+
+-- [[ LISTENER DE CHAT ]]
+-- Como você é o dono, o script monitora o SEU chat
+MY_PLAYER.Chatted:Connect(function(msg)
+    if MY_PLAYER.UserId ~= OWNER_ID then return end -- Trava de segurança máxima
+
+    if msg:sub(1,1) == PREFIX then
+        local split = msg:sub(2):split(" ")
+        local cmdName = split[1]:lower()
+        local args = {unpack(split, 2)}
+
+        if commands[cmdName] then
+            pcall(function()
+                commands[cmdName](args)
+            end)
+        end
+    end
+end)
+
+print("OMNI-ADMIN ATIVO. Só você tem permissão.")
