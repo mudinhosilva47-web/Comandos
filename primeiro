@@ -1,81 +1,86 @@
--- OMNI-ADMIN FE (Para Executor)
+-- OMNI-ADMIN FE (Update com Botão de Teste)
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui") -- Para o botão não sumir quando você resetar
 
--- CONFIGURAÇÃO DE DONO (SÓ VOCÊ)
-local OWNER_ID = 5030397596 -- [[ COLOQUE SEU USER ID AQUI ]]
-local MY_PLAYER = Players.LocalPlayer
+-- [[ SEGURANÇA ]]
+local OWNER_ID = 12345678 -- [[ COLOQUE SEU ID AQUI ]]
 local PREFIX = ":"
 
--- Função para achar jogadores por abreviação
-local function getPlr(targetName)
+-- [[ SINAL VISUAL DE CARREGAMENTO ]]
+local function createTestButton()
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "OmniTestUI"
+    sg.Parent = CoreGui
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 200, 0, 50)
+    btn.Position = UDim2.new(0.5, -100, 0.1, 0) -- Topo da tela
+    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 127) -- Verde Neon
+    btn.Text = "OMNI LOADED (Click to Close)"
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Secondary
+    btn.TextSize = 18
+    btn.Parent = sg
+    
+    -- Efeito de arredondar
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        sg:Destroy()
+        print("Botão de teste fechado.")
+    end)
+end
+
+-- Só executa se for você
+if LP.UserId == OWNER_ID then
+    createTestButton()
+    print("OMNI-SYSTEM: Verificado com sucesso.")
+else
+    warn("OMNI-SYSTEM: Usuario nao autorizado.")
+    return
+end
+
+-- [[ LOGICA DOS COMANDOS ]]
+local function getPlr(name)
     for _, p in pairs(Players:GetPlayers()) do
-        if p.Name:lower():sub(1, #targetName) == targetName:lower() or p.DisplayName:lower():sub(1, #targetName) == targetName:lower() then
+        if p.Name:lower():sub(1, #name) == name:lower() or p.DisplayName:lower():sub(1, #name) == name:lower() then
             return p
         end
     end
 end
 
--- [[ SISTEMA DE COMANDOS ]]
-local commands = {}
+local cmds = {}
 
--- 1. PULL (Puxar o jogador)
--- Nota: Em FE, puxar outros jogadores exige que você colida com eles ou use brechas de rede
-commands.pull = function(args)
+cmds.pull = function(args)
+    local target = getPlr(args[1])
+    if target and target.Character then
+        LP.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+    end
+end
+
+cmds.fly = function(args)
     local target = getPlr(args[1])
     if target and target.Character then
         local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            -- Tenta mover o personagem (funciona melhor se o mapa tiver brechas de colisão)
-            MY_PLAYER.Character.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, 2)
-            print("Puxando: " .. target.Name)
-        end
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 50, 0)
+        bv.Parent = hrp
+        task.wait(2)
+        bv:Destroy()
     end
 end
 
--- 2. FORCE FLY (Faz ele flutuar)
-commands.fly = function(args)
-    local target = getPlr(args[1])
-    if target and target.Character then
-        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-        -- Criando um efeito de flutuar via Velocity (se o script tiver permissão)
-        local bodyVel = Instance.new("BodyVelocity")
-        bodyVel.Name = "OmniForce"
-        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVel.Velocity = Vector3.new(0, 50, 0)
-        bodyVel.Parent = hrp
-        task.wait(3)
-        bodyVel:Destroy()
-    end
-end
-
--- 3. KICK (Expulsar - Só funciona se o mapa tiver Remote de Admin vulnerável)
-commands.kick = function(args)
-    local target = getPlr(args[1])
-    if target then
-        -- Tentativa de Kick via Remote comum (Adonis/HD se existirem no mapa)
-        local reason = args[2] or "OMNI-SYSTEM"
-        print("Tentando expulsar: " .. target.Name)
-        -- Aqui o script tentaria disparar Remotes conhecidos do mapa
-    end
-end
-
--- [[ LISTENER DE CHAT ]]
--- Como você é o dono, o script monitora o SEU chat
-MY_PLAYER.Chatted:Connect(function(msg)
-    if MY_PLAYER.UserId ~= OWNER_ID then return end -- Trava de segurança máxima
-
+LP.Chatted:Connect(function(msg)
     if msg:sub(1,1) == PREFIX then
         local split = msg:sub(2):split(" ")
         local cmdName = split[1]:lower()
         local args = {unpack(split, 2)}
-
-        if commands[cmdName] then
-            pcall(function()
-                commands[cmdName](args)
-            end)
+        if cmds[cmdName] then
+            pcall(function() cmds[cmdName](args) end)
         end
     end
 end)
-
-print("OMNI-ADMIN ATIVO. Só você tem permissão.")
