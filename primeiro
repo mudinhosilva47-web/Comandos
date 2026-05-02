@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- CONFIGURAÇÃO DE DONO (SÓ VOCÊ)
-local OWNER_ID = 12345678 -- [[ COLOQUE SEU USER ID AQUI ]]
+local OWNER_ID = 5030397596 -- [[ COLOQUE SEU USER ID AQUI ]]
 local MY_PLAYER = Players.LocalPlayer
 local PREFIX = ":"
 
